@@ -1,9 +1,5 @@
 #!/bin/bash
 
-# ─────────────────────────────────────────────
-# Stop Airflow services started by start_airflow.sh
-# ─────────────────────────────────────────────
-
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 stop_service() {
@@ -23,10 +19,8 @@ stop_service() {
   fi
 }
 
-echo "→ Stopping Airflow services..."
-echo ""
 stop_service "dag-processor"
 stop_service "scheduler"
 stop_service "api-server"
 echo ""
-echo "✓ Done."
+echo "Done."
