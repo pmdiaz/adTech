@@ -13,8 +13,9 @@ def run(ds):
     if "click" not in ctr.columns:
         ctr["click"] = 0
     if "impression" not in ctr.columns:
-        ctr["impression"] = 1
+        ctr["impression"] = 0
 
+    ctr = ctr[ctr["impression"] > 0]
     ctr["score"] = ctr["click"] / ctr["impression"]
     ctr = ctr.reset_index()
 
