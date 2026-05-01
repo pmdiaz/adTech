@@ -55,6 +55,10 @@ source "$VENV_DIR/bin/activate"
 
 mkdir -p "$LOGS_DIR"
 
+echo "Ejecutando db migrate..."
+airflow db migrate
+
+echo ""
 echo "Arranca Airflow (AIRFLOW_HOME=$AIRFLOW_HOME)"
 echo ""
 

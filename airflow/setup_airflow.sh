@@ -30,9 +30,5 @@ pip install --quiet -r "$SCRIPT_DIR/requirements.txt"
 
 
 echo ""
-echo "airflow db migrate"
-airflow db migrate
-
-echo ""
 echo "Done."
 echo ""
