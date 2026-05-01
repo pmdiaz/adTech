@@ -43,6 +43,13 @@ else
   echo "Mode local (SQLite)"
 fi
 
+# Load DB credentials as Airflow Variables
+if [ -f "$SCRIPT_DIR/.env" ]; then
+  set -a
+  source "$SCRIPT_DIR/.env"
+  set +a
+fi
+
 # Activate virtualenv
 source "$VENV_DIR/bin/activate"
 
