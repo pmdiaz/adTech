@@ -27,7 +27,7 @@ with DAG(
     dag_id="dag_final_tp",
     default_args=default_args,
     description="Pipeline final TP",
-    schedule="@daily",
+    schedule="0 5 * * *",
     start_date=datetime(2026, 4, 20),
     catchup=False,
     tags=["tp", "final"],

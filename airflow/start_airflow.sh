@@ -26,7 +26,7 @@ LOGS_DIR="$SCRIPT_DIR/logs/services"
 export AIRFLOW_HOME="$SCRIPT_DIR"
 export AIRFLOW__CORE__LOAD_EXAMPLES=False
 
-# Load .env (Airflow Variables + optional DB connection override)
+# Load .env (Airflow Variables +  DB connection override)
 if [ -f "$SCRIPT_DIR/.env" ]; then
   set -a
   source "$SCRIPT_DIR/.env"
