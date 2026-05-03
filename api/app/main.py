@@ -1,9 +1,10 @@
 import os
 from enum import Enum
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 import psycopg2
 from datetime import date as Date, timedelta
 from typing import Optional
+import stats
 
 app = FastAPI(title="AdTech Recommender API", version="1.0.0")
 
@@ -20,26 +21,37 @@ def get_connection():
         sslmode="require",
     )
 
+
 @app.get("/recommendations/{adv}/{modelo}", summary="Recomendaciones del día", description="Retorna el ranking de productos recomendados para un advertiser y modelo dado. Si no se indica fecha, retorna las recomendaciones de hoy.")
 def get_recommendations(adv: str, modelo: ModelName, date: Optional[Date] = None):
     run_date = date or Date.today()
-    conn = get_connection()
-    cursor = conn.cursor()
-    cursor.execute("""
-        SELECT product_id, score
-        FROM recommendations
-        WHERE advertiser_id = %s AND model_name = %s AND run_date = %s
-        ORDER BY rank
-    """, (adv, modelo, run_date))
-    rows = cursor.fetchall()
-    cursor.close()
-    conn.close()
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT product_id, score
+            FROM recommendations
+            WHERE advertiser_id = %s AND model_name = %s AND run_date = %s
+            ORDER BY rank
+        """, (adv, modelo, run_date))
+        rows = cursor.fetchall()
+        cursor.close()
+        conn.close()
+    except psycopg2.OperationalError as e:
+        raise HTTPException(status_code=503, detail=f"No se pudo conectar a la base de datos: {e}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error inesperado: {e}")
+
+    if not rows:
+        raise HTTPException(status_code=404, detail=f"No hay recomendaciones para el advertiser '{adv}' con modelo '{modelo}' en la fecha {run_date}")
+
     return {
         "advertiser_id": adv,
         "model_name": modelo,
         "date": str(run_date),
         "recommendations": [{"product_id": r[0], "score": r[1]} for r in rows],
     }
+
 
 @app.get("/history/{adv}", summary="Historial de recomendaciones", description="Retorna las recomendaciones de los últimos 7 días disponibles para un advertiser, agrupadas por fecha y modelo.")
 def get_history(adv: str):
@@ -56,26 +68,19 @@ def get_history(adv: str):
     conn.close()
     return [{"run_date": str(r[0]), "model_name": r[1], "product_id": r[2], "rank": r[3], "score": r[4]} for r in rows]
 
+
 @app.get("/stats/", summary="Estadísticas generales", description="Retorna el total de advertisers y la cantidad de días con recomendaciones disponibles por advertiser.")
 def get_stats():
     conn = get_connection()
     cursor = conn.cursor()
-    
-    cursor.execute("SELECT COUNT(DISTINCT advertiser_id) FROM recommendations")
-    total_advertisers = cursor.fetchone()[0]
-    
-    cursor.execute("""
-        SELECT advertiser_id, COUNT(DISTINCT run_date) as dias
-        FROM recommendations
-        GROUP BY advertiser_id
-        ORDER BY dias DESC
-    """)
-    advertisers_por_dia = cursor.fetchall()
-    
+
+    result = {
+        "total_advertisers": stats.total_advertisers(cursor),
+        "advertisers_por_dia": stats.advertisers_por_dia(cursor),
+        "overlap_modelos": stats.overlap_modelos(cursor),
+"sin_recomendaciones_recientes": stats.sin_recomendaciones_recientes(cursor),
+    }
+
     cursor.close()
     conn.close()
-    
-    return {
-        "total_advertisers": total_advertisers,
-        "advertisers_por_dia": [{"advertiser_id": r[0], "dias": r[1]} for r in advertisers_por_dia]
-    }
+    return result
